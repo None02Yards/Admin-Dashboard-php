@@ -5,13 +5,23 @@ require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/app/core/Database.php';
 require_once __DIR__ . '/app/core/Controller.php';
 require_once __DIR__ . '/app/core/Auth.php';
+require_once __DIR__ . '/app/core/Csrf.php'; // ensure Csrf is available (if you placed it earlier)
 
-// Autoload controllers and models
+// Autoload controllers and models including modules
 spl_autoload_register(function ($class) {
     $paths = [
         __DIR__ . '/app/controllers/' . $class . '.php',
         __DIR__ . '/app/models/' . $class . '.php',
     ];
+
+    // include controllers and models in modules: app/modules/*/controllers and app/modules/*/models
+    foreach (glob(__DIR__ . '/app/modules/*/controllers') as $dir) {
+        $paths[] = $dir . '/' . $class . '.php';
+    }
+    foreach (glob(__DIR__ . '/app/modules/*/models') as $dir) {
+        $paths[] = $dir . '/' . $class . '.php';
+    }
+
     foreach ($paths as $file) {
         if (file_exists($file)) {
             require_once $file;
@@ -21,7 +31,9 @@ spl_autoload_register(function ($class) {
 });
 
 // Start session
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 // Basic routing: /controller/action/params...
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
