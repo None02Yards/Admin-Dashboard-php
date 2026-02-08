@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  app:
+    build: ./docker/php
+    container_name: voting_app
+    ports:
+      - "8000:80"        # Access app at http://localhost:8000
+    volumes:
+      - ./:/var/www/html:rw
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    container_name: voting_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-voting_db}
+      MYSQL_USER: ${MYSQL_USER:-voter_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./:/project:rw            # mount project so db can read schema and write backups
+    ports:
+      - "3306:3306"
+
+  adminer:
+    image: adminer:latest
+    container_name: voting_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+
+volumes:
+  db_data:
