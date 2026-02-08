@@ -23,7 +23,7 @@ class User
 
     public function findById($id)
     {
-        $stmt = $this->db->prepare("SELECT id, username, role FROM users WHERE id = ? LIMIT 1");
+        $stmt = $this->db->prepare("SELECT id, username, role, created_at FROM users WHERE id = ? LIMIT 1");
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
     }
@@ -46,6 +46,25 @@ class User
         $stmt = $this->db->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute([$username, $hash, $role]);
         return (int)$this->db->lastInsertId();
+    }
+
+    public function update($id, $username, $role = 'voter')
+    {
+        // prevent duplicate username (except for current user)
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE username = ? AND id != ?");
+        $stmt->execute([$username, $id]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Username already exists.');
+        }
+        $stmt = $this->db->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
+        return $stmt->execute([$username, $role, $id]);
+    }
+
+    public function updatePassword($id, $password)
+    {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $this->db->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+        return $stmt->execute([$hash, $id]);
     }
 
     public function delete($id)
